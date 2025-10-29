@@ -475,22 +475,23 @@ function updateWarnings() {
     const annualCost = monthlyCost * 12;
     const avgMargin = monthlyRev > 0 ? ((monthlyRev - monthlyCost) / monthlyRev) * 100 : 0;
     
-    // Over budget
-    if (annualRev > annualBudget) {
+    // Over budget - only if TRULY over (more than 0.5% over to account for rounding)
+    const budgetDifference = annualRev - annualBudget;
+    if (budgetDifference > annualBudget * 0.005) { // More than 0.5% over
         const warning = document.createElement('div');
         warning.className = 'warning-box danger';
         warning.innerHTML = `
             <div class="warning-icon">❌</div>
             <div class="warning-text">
                 <strong>Over Budget!</strong><br>
-                <small>Revenue: ${formatCurrency(annualRev)} exceeds budget: ${formatCurrency(annualBudget)}</small>
+                <small>Revenue: ${formatCurrency(annualRev)} exceeds budget: ${formatCurrency(annualBudget)} by ${formatCurrency(budgetDifference)}</small>
             </div>
         `;
         container.appendChild(warning);
     }
     
     // Below target
-    if (avgMargin < targetMargin * 100) {
+    if (avgMargin < targetMargin * 100 - 0.5) { // At least 0.5% below target
         const warning = document.createElement('div');
         warning.className = 'warning-box warning';
         warning.innerHTML = `
@@ -503,16 +504,17 @@ function updateWarnings() {
         container.appendChild(warning);
     }
     
-    // Budget too low
-    const minBudget = annualCost / (1 - MIN_MARGIN);
-    if (annualBudget < minBudget) {
+    // Budget too low - only if margin is negative or very low (below 5%)
+    const actualMargin = annualRev > 0 ? ((annualRev - annualCost) / annualRev) : 0;
+    if (actualMargin < 0.05) {
+        const minBudget = annualCost / (1 - MIN_MARGIN);
         const warning = document.createElement('div');
         warning.className = 'warning-box danger';
         warning.innerHTML = `
             <div class="warning-icon">🚨</div>
             <div class="warning-text">
                 <strong>Budget Too Low!</strong><br>
-                <small>Need ${formatCurrency(minBudget)} for 10% margin</small>
+                <small>Need ${formatCurrency(minBudget)} for 10% margin. Current margin: ${(actualMargin * 100).toFixed(1)}%</small>
             </div>
         `;
         container.appendChild(warning);
